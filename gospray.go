@@ -208,19 +208,23 @@ func validate(wg *sync.WaitGroup, m <-chan message, config configuration) {
 					fmt.Println(err)
 				}
 			} else {
-				mailutil.SendMail("New Round!", "Good luck! :)")
-				log.Printf("%s -- %s::%s::Succes.", cred.referenceID, cred.accountname, cred.password)
+			        log.Printf("%s -- %s::%s::Success.", cred.referenceID, cred.accountname, cred.password)
+				mailutil.SendMail(":) New Round!", "Good luck! :)")
+			
 			}
-
+                       
+			connection.Close()
 		} else {
 			log.Printf("Error connecting to domain: %s", err)
 		}
 
-		connection.Close()
+		
 		//sleep a little to back off
 		time.Sleep(100 * time.Millisecond)
+	
+		//wait for next message
+	        work = <-m
 	}
 
-	//wait for next message
-	work = <-m
+	
 }
