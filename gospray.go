@@ -193,38 +193,43 @@ func validate(wg *sync.WaitGroup, m <-chan message, config configuration) {
 
 		cred := work.cred
 
-		connection, err := ldap.DialTLS("tcp", net.JoinHostPort(config.domainController, ldap.DefaultLdapsPort), config.tlsConfig)
-		if err == nil {
+		// retry count in case IP connectivy is flaky
+		retry := 3
 
-			//bind to validate the credential
-			//noticed that this seems to prefer a upn as accountname (not just alias/samAccountName)
-			//so be aware to have the input file for accounts in account@domain.com form
-			//test this first in your environment
-			err = connection.Bind(cred.accountname, cred.password)
-			if err != nil {
-				log.Printf("%s -- %s::%s::Failed.", cred.referenceID, cred.accountname, cred.password)
+		for retry > 0 {
 
-				if config.verbose {
-					fmt.Println(err)
+			connection, err := ldap.DialTLS("tcp", net.JoinHostPort(config.domainController, ldap.DefaultLdapsPort), config.tlsConfig)
+			if err == nil {
+
+				//bind to validate the credential
+				//noticed that this seems to prefer a upn as accountname (not just alias/samAccountName)
+				//so be aware to have the input file for accounts in account@domain.com form
+				//test this first in your environment
+				err = connection.Bind(cred.accountname, cred.password)
+				if err != nil {
+					log.Printf("%s -- %s::%s::Failed.", cred.referenceID, cred.accountname, cred.password)
+
+					if config.verbose {
+						fmt.Println(err)
+					}
+				} else {
+					log.Printf("%s -- %s::%s::Success.", cred.referenceID, cred.accountname, cred.password)
+					mailutil.SendMail(":) New Round!", "Good luck! :)")
 				}
+
+				retry = 0
+				connection.Close()
 			} else {
-			        log.Printf("%s -- %s::%s::Success.", cred.referenceID, cred.accountname, cred.password)
-				mailutil.SendMail(":) New Round!", "Good luck! :)")
-			
+				retry--
+				log.Printf("Error connecting to domain: %s (trying %d more time(s))", err, retry)
 			}
-                       
-			connection.Close()
-		} else {
-			log.Printf("Error connecting to domain: %s", err)
+
+			//sleep a little to back off
+			time.Sleep(100 * time.Millisecond)
 		}
 
-		
-		//sleep a little to back off
-		time.Sleep(100 * time.Millisecond)
-	
 		//wait for next message
-	        work = <-m
+		work = <-m
 	}
 
-	
 }
