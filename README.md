@@ -12,7 +12,7 @@ There are various command line options to specify user and password list, as wel
 
 At a high level the latest version supports two testing modes:
 1. Password Spray: If you specify both -accounts and -passwords files, then a spray will be performed
-2. Password Validation Mode: If you specify -validatecreds file (the above options are ignored), and the validatecreds file will be parsed line by line, each line is split by colon (:), retrieving username:password, and afterwards and authentication attempt will be performed against specified DC
+2. Password Validation Mode: If you specify -validatecreds file, the above options are ignored. The file specified with validatecreds   is parsed line by line, each line is split by colon (:) to retrieve username:password. Afterwards an authentication attempt will be performed against specified domain controller.
 
 When on non-domain joined machine, it's possible to get the domain controllers cert via (basically trust on first use - tofu):
 
