@@ -2,13 +2,11 @@
 Active Directory Password Spray Testing Utility in Go
 
 This tool has a dependency on ldap and gomail via wuzziutils library). You can get those dependencies with:
-
-*go get https://github.com/wunderwuzzi23/wuzziutils
-
-*go get gopkg.in/ldap.v3*
-
-*go get gopkg.in/gomail.v2*
-
+```
+go get https://github.com/wunderwuzzi23/wuzziutils
+go get gopkg.in/ldap.v3
+go get gopkg.in/gomail.v2
+```
 
 There are various command line options to specify user and password list, as well as LDAP server, certificates (when testing from non domain joined machines). Nothing fancy.
 
@@ -18,8 +16,9 @@ At a high level the latest version supports two testing modes:
 
 When on non-domain joined machine, it's possible to get the domain controllers cert via (basically trust on first use - tofu):
 
+```
 openssl s_client -showcerts -connect [dc].[company].[local]:636 > cer.txt
-
+```
 Afterwards the pem part of the result in a ca.pem file to gospray and it will use it to valide the servers certificate.
 
 Otherwise ask your IT deparment or copy cert from your domain joined machine.
