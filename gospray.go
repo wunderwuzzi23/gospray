@@ -157,7 +157,7 @@ func main() {
 		mailutil.SendMail("Credential Validation Starting", "Good luck! :)")
 
 		for idxLine, line := range lines {
-			parts := strings.SplitN(line, ":", 1)
+			parts := strings.SplitN(line, ":", 2)
 			account := parts[0]
 			password := parts[1]
 
