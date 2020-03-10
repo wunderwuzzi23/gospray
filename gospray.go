@@ -158,6 +158,11 @@ func main() {
 
 		for idxLine, line := range lines {
 			parts := strings.SplitN(line, ":", 2)
+			if len(parts) != 2 {  
+                            log.Printf("Error parsing line %d: %s", idxLine+1,line) 
+                            continue
+                        }
+			
 			account := parts[0]
 			password := parts[1]
 
