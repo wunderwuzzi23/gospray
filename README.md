@@ -3,7 +3,7 @@ Active Directory Password Spray Testing Utility in Go
 
 This tool has a dependency on ldap and gomail via wuzziutils library). You can get those dependencies with:
 ```
-go get https://github.com/wunderwuzzi23/wuzziutils
+go get github.com/wunderwuzzi23/wuzziutils
 go get gopkg.in/ldap.v3
 go get gopkg.in/gomail.v2
 ```
