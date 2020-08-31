@@ -82,7 +82,7 @@ func main() {
 	flag.StringVar(&config.accountsfile, "accounts", "accounts.list", "Filename of the accounts to test. One account name per line.")
 	flag.StringVar(&config.passwordfile, "passwords", "passwords.list", "Password file, one password per line.")
 	flag.StringVar(&config.validationfile, "validatecreds", "", "Validation mode - single file with username,password to valdiate")
-	flag.StringVar(&config.domainController, "dc", "ldaps://<yourdomain>.<corp>.<com>", "URL to your LDAP Server")
+	flag.StringVar(&config.domainController, "dc", "<yourdomain>.<corp>.<com>", "URL to your LDAP Server")
 	flag.BoolVar(&config.verbose, "verbose", true, "Verbose errors")
 	flag.StringVar(&config.dcCertificate, "dccert", "", "Public key from Domain Controller. To safely use TLS from non domain machine")
 	flag.StringVar(&config.logfile, "logfile", "results.log", "Log file containing results and output")
