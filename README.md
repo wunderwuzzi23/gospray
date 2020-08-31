@@ -65,9 +65,9 @@ Usage of ./gospray:
         Number of concurrent worker routines (default 2)
 ```
 
-## Testing from a non domain joined machine? You will need the domain controller's TLS cert
+## Testing from a non domain joined machine? 
 
-When on non-domain joined machine, it's possible to get the domain controllers cert via (basically trust on first use - tofu):
+When on a non-domain joined machine, it's possible to get the domain controllers cert via (basically trust on first use - tofu):
 ```
 openssl s_client -showcerts -connect [dc].[company].[local]:636 > cer.txt
 ```
