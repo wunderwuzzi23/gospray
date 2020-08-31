@@ -1,7 +1,7 @@
 # GoSpray
 Active Directory Password Spray Testing Utility in Go
 
-## Install
+## Get it
 
 ```
 git clone https://github.com/wunderwuzzi23/gospray
@@ -13,7 +13,7 @@ go get github.com/wunderwuzzi23/wuzziutils
 go get gopkg.in/ldap.v3
 go get gopkg.in/gomail.v2
 ```
-## Building
+## Compile
 
 Navigate to the `gospray` folder and run:
 
@@ -21,7 +21,7 @@ Navigate to the `gospray` folder and run:
 go build gospray.go
 ```
 
-## Running
+## Run
 
 ```
 ./gospray [options]
